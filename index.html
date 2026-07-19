@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stallr</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #eff6ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 410px;
+            background: var(--card-bg);
+            border-radius: 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 24px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .brand-row h1 {
+            margin-bottom: 0;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .sign-out-btn {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: rgba(255,255,255,0.18);
+            border: none;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .toggle-container {
+            display: flex;
+            background: #f1f5f9;
+            margin: 16px;
+            padding: 4px;
+            border-radius: 14px;
+            position: relative;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .toggle-btn.active {
+            color: var(--text);
+        }
+
+        .toggle-glider {
+            position: absolute;
+            height: calc(100% - 8px);
+            width: calc(50% - 4px);
+            background: white;
+            top: 4px;
+            left: 4px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 1;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-content {
+            padding: 0 16px 20px 16px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 10px 0;
+        }
+
+        .inventory-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+            margin-bottom: 16px;
+        }
+
+        .inventory-empty {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 20px 10px;
+            border: 1px dashed var(--border);
+            border-radius: 14px;
+            margin-bottom: 16px;
+        }
+
+        .inv-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .inv-card:hover, .inv-card.selected {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+        }
+
+        .inv-card-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .inv-timeline-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            position: relative;
+            margin: 8px 0;
+        }
+
+        .inv-timeline-fill {
+            position: absolute;
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .inv-timeline-fill.demand {
+            background: var(--accent-blue);
+        }
+
+        .inv-card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .pending-card {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 4px;
+        }
+
+        .pending-card-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+        }
+
+        .pending-card-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .btn-confirm-receipt {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .form-group {
+            flex: 1;
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #f8fafc;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        input.invalid {
+            border-color: var(--danger);
+            background: var(--danger-light);
+        }
+
+        .field-error {
+            font-size: 0.72rem;
+            color: var(--danger);
+            margin-top: 4px;
+            min-height: 14px;
+            display: block;
+        }
+
+        .rate-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .rate-hint .suggest-btn {
+            display: inline-block;
+            margin-top: 4px;
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+            border: none;
+            font-weight: 700;
+            font-size: 0.72rem;
+            padding: 5px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .info-box {
+            background-color: var(--danger-light);
+            border-left: 4px solid var(--danger);
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #7f1d1d;
+        }
+
+        .summary-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .summary-row.total {
+            margin-bottom: 0;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border);
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--text);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: var(--text);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            align-items: flex-end;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-sheet {
+            background: white;
+            width: 100%;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 85%;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal-sheet {
+            transform: translateY(0);
+        }
+
+        .legal-scroll-box {
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-row input {
+            width: auto;
+            margin-top: 2px;
+        }
+
+        /* --- Auth screen --- */
+        .auth-screen {
+            padding: 32px 24px;
+        }
+
+        .auth-screen p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+
+        .auth-msg {
+            font-size: 0.8rem;
+            margin-top: 10px;
+            min-height: 16px;
+        }
+
+        .auth-msg.error { color: var(--danger); }
+        .auth-msg.success { color: var(--primary-dark); }
+
+        .loading-screen {
+            padding: 60px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* --- My Bookings sub-tabs --- */
+        .mybookings-subtabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .subtab-btn {
+            flex: 1;
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            color: var(--text-muted);
+            padding: 8px 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .subtab-btn.active {
+            background: var(--text);
+            color: #fff;
+            border-color: var(--text);
+        }
+
+        .subtab-count {
+            font-size: 0.68rem;
+            font-weight: 700;
+            background: rgba(0,0,0,0.08);
+            color: inherit;
+            padding: 1px 6px;
+            border-radius: 20px;
+            min-width: 14px;
+            text-align: center;
+        }
+
+        .subtab-btn.active .subtab-count {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .subtab-count:empty {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <div class="toast" id="toast"></div>
+
+    <!-- AUTH GATE: shown until the person is signed in -->
+    <div id="auth-screen" class="auth-screen">
+        <div class="header" style="margin: -32px -24px 20px -24px; border-radius: 0;">
+            <div class="brand-row">
+                <svg width="34" height="34" viewBox="0 0 44 44" aria-hidden="true">
+                    <rect x="1" y="1" width="42" height="42" rx="12" fill="#4a4d52" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                    <line x1="10" y1="34" x2="16" y2="10" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="20" y1="34" x2="26" y2="10" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="30" y1="34" x2="36" y2="10" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                <h1>Stallr</h1>
+            </div>
+            <p>Residents Only &bull; Making guest parking easy</p>
+        </div>
+        <p>Enter your building's invite code and your email, and we'll send you a one-time sign-in link. No password needed.</p>
+        <div class="form-group">
+            <label>Invite Code</label>
+            <input type="text" id="auth-invite-code" placeholder="Ask your neighbor for this">
+        </div>
+        <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="auth-email" placeholder="name@email.com">
+        </div>
+
+        <div class="legal-scroll-box">
+            <strong>WHAT WE COLLECT:</strong> To run Stallr for your building, we collect and store: your email address (for sign-in and booking notifications), your first name (shown to neighbors you interact with), your guest's license plate when you book a spot (shared with that spot's owner), your parking spot number if you list one (kept private until a booking is paid and confirmed), your Interac e-transfer email if you list a spot (shared only with whoever books it), and the timing/history of your listings and bookings.<br><br>
+            <strong>WHO SEES WHAT:</strong> Your name and license plate are only ever shared with the specific neighbor you're transacting with for that booking — never posted publicly or shown to the whole building.<br><br>
+            <strong>NOT COLLECTED:</strong> We don't collect or store any actual payment details — all payments happen directly between neighbors via Interac, outside this app.
+        </div>
+        <div class="checkbox-row">
+            <input type="checkbox" id="privacy-agree">
+            <label for="privacy-agree" style="font-weight:500; font-size:0.8rem; color: var(--text)">I understand and agree to how my information is collected and shared, as described above.</label>
+        </div>
+
+        <button class="btn-submit" id="btn-send-link" onclick="sendMagicLink()">Send Sign-In Link</button>
+        <div class="auth-msg" id="auth-msg"></div>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div id="loading-screen" class="loading-screen" style="display:none;">
+        Loading your account...
+    </div>
+
+    <!-- NAME SCREEN: shown once, right after first sign-in -->
+    <div id="name-screen" class="auth-screen" style="display:none;">
+        <div class="header" style="margin: -32px -24px 20px -24px; border-radius: 0;">
+            <h1>One Last Thing</h1>
+            <p>Residents Only</p>
+        </div>
+        <p>What's your first name? Neighbors will see this instead of just an email address.</p>
+        <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="profile-name" placeholder="e.g. Sam">
+        </div>
+        <button class="btn-submit" id="btn-save-name" onclick="saveProfileName()">Continue</button>
+        <div class="auth-msg" id="name-msg"></div>
+    </div>
+
+    <!-- MAIN APP: hidden until signed in -->
+    <div id="app-root" style="display:none;">
+        <div class="header">
+            <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+            <div class="brand-row">
+                <svg width="34" height="34" viewBox="0 0 44 44" aria-hidden="true">
+                    <rect x="1" y="1" width="42" height="42" rx="12" fill="#4a4d52" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+                    <line x1="10" y1="34" x2="16" y2="10" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="20" y1="34" x2="26" y2="10" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+                    <line x1="30" y1="34" x2="36" y2="10" stroke="#f5c542" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+                <h1>Stallr</h1>
+            </div>
+            <p>Residents Only &bull; Making guest parking easy</p>
+        </div>
+
+        <div class="toggle-container">
+            <button class="toggle-btn active" onclick="switchTab('rent')">Find a Spot</button>
+            <button class="toggle-btn" onclick="switchTab('list')">List My Spot</button>
+            <div class="toggle-glider" id="glider"></div>
+        </div>
+
+        <!-- TAB 1: FIND A SPOT -->
+        <div id="tab-rent" class="tab-content active">
+            <div class="section-title">My Bookings</div>
+            <div class="mybookings-subtabs">
+                <button class="subtab-btn active" id="subtab-btn-pending" onclick="switchMyBookingsSubtab('pending')">Pending<span class="subtab-count" id="count-pending"></span></button>
+                <button class="subtab-btn" id="subtab-btn-confirmed" onclick="switchMyBookingsSubtab('confirmed')">Confirmed<span class="subtab-count" id="count-confirmed"></span></button>
+                <button class="subtab-btn" id="subtab-btn-cancelled" onclick="switchMyBookingsSubtab('cancelled')">Cancelled<span class="subtab-count" id="count-cancelled"></span></button>
+            </div>
+            <div class="inventory-list" id="my-bookings-list"></div>
+            <div class="inventory-empty" id="my-bookings-empty" style="display:none;"></div>
+
+            <div class="section-title">Available Active Windows</div>
+            <div class="inventory-list" id="rent-inventory"></div>
+
+            <div class="form-group">
+                <label>Your Guest's License Plate *</label>
+                <input type="text" id="rent-plate" placeholder="e.g. ABCD-123" oninput="validateRentForm()">
+                <span class="field-error" id="err-rent-plate"></span>
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-row">
+                    <span>Booking Window:</span>
+                    <span id="rent-window">Select a spot above</span>
+                </div>
+                <div class="summary-row">
+                    <span>Rate:</span>
+                    <span id="rent-rate">Select a spot</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Duration:</span>
+                    <span id="rent-duration">&mdash;</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total Cost:</span>
+                    <span id="rent-total">$0.00</span>
+                </div>
+            </div>
+
+            <button class="btn-submit" id="btn-rent-submit" disabled onclick="openLegalModal('rent')">Secure Booking</button>
+        </div>
+
+        <!-- TAB 2: LIST A SPOT -->
+        <div id="tab-list" class="tab-content">
+            <div class="section-title" id="pending-confirmations-title" style="display:none;">Awaiting Your Confirmation</div>
+            <div class="inventory-list" id="pending-confirmations" style="display:none;"></div>
+
+            <div class="section-title" id="my-listings-title" style="display:none;">Your Listings</div>
+            <div class="inventory-list" id="my-listings" style="display:none;"></div>
+
+            <div class="section-title" id="my-active-bookings-title" style="display:none;">Your Active Bookings</div>
+            <div class="inventory-list" id="my-active-bookings" style="display:none;"></div>
+
+            <div class="section-title">Live Neighbor Requests</div>
+            <div class="inventory-list" id="list-inventory"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Your Parking Spot Number</label>
+                    <input type="text" id="list-spot" placeholder="e.g. 142" oninput="validateListForm()">
+                    <span class="field-error" id="err-list-spot"></span>
+                </div>
+                <div class="form-group">
+                    <label>Your Interac E-transfer Email</label>
+                    <input type="email" id="list-email" placeholder="name@email.com" oninput="validateListForm()">
+                    <span class="field-error" id="err-list-email"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Your Rate ($ / hour)</label>
+                <input type="number" id="list-rate" placeholder="0.50" min="0.25" max="2.00" step="0.05" value="0.50" oninput="calculateList(); validateListForm()">
+                <span class="field-error" id="err-list-rate"></span>
+                <div class="rate-hint" id="rate-hint"></div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Available From</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="date" id="list-start-date" onchange="calculateList()" style="flex:1.3;">
+                        <select id="list-start-time" onchange="calculateList()" style="flex:1;"></select>
+                    </div>
+                    <span class="field-error" id="err-list-start"></span>
+                </div>
+                <div class="form-group">
+                    <label>When You Return Home</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="date" id="list-home-date" onchange="calculateList()" style="flex:1.3;">
+                        <select id="list-home-time" onchange="calculateList()" style="flex:1;"></select>
+                    </div>
+                    <span class="field-error" id="err-list-home"></span>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <strong>Safety Buffer Active</strong><br>
+                Your listing locks booking access automatically 1 hour prior to your return home.
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-row">
+                    <span>Bookable Window Closes:</span>
+                    <span id="list-buffer-display">&mdash;</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Max Earning Potential:</span>
+                    <span id="list-total">$0.00</span>
+                </div>
+            </div>
+
+            <button class="btn-submit" id="btn-list-submit" disabled onclick="openLegalModal('list')">Publish Listing</button>
+        </div>
+
+        <div class="modal-overlay" id="modal-container">
+            <div class="modal-sheet" id="modal-content"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /*
+     * ============================================================
+     * CONFIGURATION -- fill these in after creating your Supabase
+     * project (see SETUP.md). Project Settings -> API in your
+     * Supabase dashboard gives you both values.
+     * ============================================================
+     */
+    const SUPABASE_URL = 'https://tuklsopfwwqddpkuokgo.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_AVSViYLuhjaUBu8dVCXRZA_ysxemaED';
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const RATE_MIN = 0.25;
+    const RATE_MAX = 2.00;
+
+    let currentUser = null;
+    let listingsCache = [];
+    let requestsCache = [];
+    let selectedRentListingId = null;
+    let selectedListRequestId = null;
+    let activeWaitPollId = null;
+    let activeWaitBookingId = null;
+
+    // The app is now hosted at a real address (not a local file), so the
+    // standard magic-link flow works: Supabase can actually redirect back
+    // here after the person clicks the link in their email.
+    const APP_URL = 'https://muska999.github.io/stallr/';
+
+    async function sendMagicLink() {
+        const email = document.getElementById('auth-email').value.trim();
+        const inviteCode = document.getElementById('auth-invite-code').value.trim();
+        const msg = document.getElementById('auth-msg');
+        const btn = document.getElementById('btn-send-link');
+        msg.className = 'auth-msg';
+        msg.innerText = '';
+
+        if (!inviteCode) {
+            msg.classList.add('error');
+            msg.innerText = 'Enter your building\'s invite code.';
+            return;
+        }
+
+        if (!email.includes('@')) {
+            msg.classList.add('error');
+            msg.innerText = 'Enter a valid email address.';
+            return;
+        }
+
+        if (!document.getElementById('privacy-agree').checked) {
+            msg.classList.add('error');
+            msg.innerText = 'Please acknowledge the privacy notice above before continuing.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Checking...';
+
+        // This is a soft gate, not a hard security boundary — it just keeps
+        // casual/accidental non-residents out. See the note in the schema.
+        const { data: codeValid, error: codeError } = await supabaseClient
+            .rpc('is_valid_invite_code', { p_code: inviteCode });
+
+        if (codeError || !codeValid) {
+            btn.disabled = false;
+            btn.innerText = 'Send Sign-In Link';
+            msg.classList.add('error');
+            msg.innerText = 'That invite code isn\'t recognized — check with a neighbor.';
+            return;
+        }
+
+        btn.innerHTML = '<span class="spinner"></span> Sending...';
+
+        const { error } = await supabaseClient.auth.signInWithOtp({
+            email: email,
+            options: { emailRedirectTo: APP_URL, shouldCreateUser: true }
+        });
+
+        btn.disabled = false;
+        btn.innerText = 'Send Sign-In Link';
+
+        if (error) {
+            msg.classList.add('error');
+            msg.innerText = error.message;
+        } else {
+            msg.classList.add('success');
+            msg.innerText = 'Check your email for a sign-in link.';
+        }
+    }
+
+    async function signOut() {
+        await supabaseClient.auth.signOut();
+        location.reload();
+    }
+
+    function showAuthScreen() {
+        document.getElementById('auth-screen').style.display = 'block';
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('name-screen').style.display = 'none';
+        document.getElementById('app-root').style.display = 'none';
+    }
+
+    function showLoadingScreen() {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'block';
+        document.getElementById('name-screen').style.display = 'none';
+        document.getElementById('app-root').style.display = 'none';
+    }
+
+    function showNameScreen() {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('name-screen').style.display = 'block';
+        document.getElementById('app-root').style.display = 'none';
+    }
+
+    async function saveProfileName() {
+        const nameInput = document.getElementById('profile-name');
+        const msg = document.getElementById('name-msg');
+        const btn = document.getElementById('btn-save-name');
+        const name = nameInput.value.trim();
+        msg.className = 'auth-msg';
+        msg.innerText = '';
+
+        if (name.length === 0) {
+            msg.classList.add('error');
+            msg.innerText = 'Enter your first name.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Saving...';
+
+        const { error } = await supabaseClient
+            .from('profiles')
+            .insert({ id: currentUser.id, display_name: name, privacy_accepted_at: new Date().toISOString() });
+
+        btn.disabled = false;
+        btn.innerText = 'Continue';
+
+        if (error) {
+            msg.classList.add('error');
+            msg.innerText = error.message;
+            return;
+        }
+
+        await showApp();
+    }
+
+    async function showApp() {
+        // First-time sign-ins need a display name before they can use
+        // the app — check once here rather than assuming one exists.
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+
+        if (!profile) {
+            showNameScreen();
+            return;
+        }
+
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('name-screen').style.display = 'none';
+        document.getElementById('app-root').style.display = 'block';
+        await initAppData();
+    }
+
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function dateOnlyStr(d) {
+        return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+
+    // Rounds to the nearest half hour, used when pre-filling a date/time
+    // pair from a listing's real timestamp (which is always exactly on
+    // the half hour already, but this keeps it safe either way).
+    function roundToHalfHour(d) {
+        const result = new Date(d);
+        const minutes = result.getMinutes();
+        const remainder = minutes % 30;
+        const roundedMinutes = remainder < 15 ? minutes - remainder : minutes + (30 - remainder);
+        result.setMinutes(roundedMinutes, 0, 0);
+        return result;
+    }
+
+    function timeOnlyStr(d) {
+        const rounded = roundToHalfHour(d);
+        return `${pad2(rounded.getHours())}:${pad2(rounded.getMinutes())}`;
+    }
+
+    // Fills a <select> with every :00 and :30 time of day, e.g.
+    // "12:00 AM", "12:30 AM", ... "11:30 PM" — this is what actually
+    // guarantees only half-hour increments are selectable, regardless
+    // of what a given browser's native time picker would otherwise allow.
+    function populateTimeSelect(selectId) {
+        const selectEl = document.getElementById(selectId);
+        let html = '';
+        for (let h = 0; h < 24; h++) {
+            for (const m of [0, 30]) {
+                const value = `${pad2(h)}:${pad2(m)}`;
+                const period = h < 12 ? 'AM' : 'PM';
+                const displayHour = h % 12 === 0 ? 12 : h % 12;
+                const label = `${displayHour}:${pad2(m)} ${period}`;
+                html += `<option value="${value}">${label}</option>`;
+            }
+        }
+        selectEl.innerHTML = html;
+    }
+
+    // Sets a date input + time select pair from a real Date object.
+    function setDateTimeFields(dateId, timeId, d) {
+        document.getElementById(dateId).value = dateOnlyStr(d);
+        document.getElementById(timeId).value = timeOnlyStr(d);
+    }
+
+    // Combines a date input + time select pair back into a real Date.
+    function getDateTimeFields(dateId, timeId) {
+        const dateVal = document.getElementById(dateId).value;
+        const timeVal = document.getElementById(timeId).value;
+        if (!dateVal || !timeVal) return null;
+        return new Date(`${dateVal}T${timeVal}:00`);
+    }
+
+    function plusHours(d, h) {
+        return new Date(d.getTime() + h * 60 * 60 * 1000);
+    }
+    function fmtTime(d) {
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+    function fmtDay(d) {
+        const sameDay = d.toDateString() === new Date().toDateString();
+        return sameDay ? 'Today' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    // A small permanent record of exactly what was booked — same rows
+    // shown to both the renter and the owner, so there's a shared,
+    // unambiguous reference if either side needs to recall the details
+    // later. Pass rows as [label, value] pairs; the last row is
+    // bolded as the total.
+    function buildReceiptRows(rows) {
+        return rows.map((row, i) => {
+            const isLast = i === rows.length - 1;
+            return `<div class="summary-row${isLast ? ' total' : ''}"><span>${row[0]}:</span><span>${row[1]}</span></div>`;
+        }).join('');
+    }
+
+    async function initAppData() {
+        populateTimeSelect('list-start-time');
+        populateTimeSelect('list-home-time');
+
+        const now = new Date();
+        setDateTimeFields('list-start-date', 'list-start-time', now);
+        setDateTimeFields('list-home-date', 'list-home-time', plusHours(now, 12));
+
+        await loadListings();
+        await loadNeighborRequests();
+        await loadPendingConfirmations();
+        await loadMyListings();
+        await loadMyActiveBookings();
+        await loadMyBookings();
+        renderRateHint();
+        document.getElementById('list-rate').value = suggestedRate().toFixed(2);
+        calculateList();
+        validateListForm();
+    }
+
+    async function loadListings() {
+        // Clear out any bookings that were abandoned (never paid, never
+        // cancelled) so their spots become bookable again before we show
+        // the list to whoever's browsing right now.
+        await supabaseClient.rpc('run_cleanup');
+
+        const { data, error } = await supabaseClient
+            .from('public_listings')
+            .select('*')
+            .eq('status', 'active')
+            .eq('is_mine', false)
+            .order('start_time', { ascending: true });
+
+        if (error) {
+            showToast('Could not load listings');
+            console.error(error);
+            return;
+        }
+        listingsCache = (data || []).map(l => ({
+            ...l,
+            start: new Date(l.start_time),
+            end: new Date(l.end_time)
+        }));
+        renderRentInventory();
+        if (!selectedRentListingId && listingsCache.length > 0) {
+            selectRentListing(listingsCache[0].id);
+        }
+    }
+
+    async function loadNeighborRequests() {
+        const { data, error } = await supabaseClient
+            .from('neighbor_requests')
+            .select('*')
+            .order('start_time', { ascending: true });
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+        requestsCache = (data || []).map(r => ({
+            ...r,
+            start: new Date(r.start_time),
+            end: new Date(r.end_time)
+        }));
+        renderListInventory();
+    }
+
+    async function loadPendingConfirmations() {
+        const { data, error } = await supabaseClient
+            .from('bookings')
+            .select('id, plate, total, renter_id, listing_id, listings!inner(owner_id, spot_number, rate, start_time, end_time)')
+            .eq('status', 'awaiting_confirmation')
+            .eq('listings.owner_id', currentUser.id);
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        const rows = data || [];
+        const nameById = await fetchDisplayNames(rows.map(r => r.renter_id));
+        rows.forEach(r => { r.renter_name = nameById[r.renter_id] || 'A neighbor'; });
+
+        renderPendingConfirmations(rows);
+    }
+
+    // profiles isn't directly foreign-keyed from bookings (both just
+    // point at auth.users), so PostgREST can't auto-embed it — this
+    // fetches display names in one extra query and merges them in.
+    async function fetchDisplayNames(userIds) {
+        const uniqueIds = [...new Set(userIds.filter(Boolean))];
+        if (uniqueIds.length === 0) return {};
+
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('id, display_name')
+            .in('id', uniqueIds);
+
+        if (error || !data) return {};
+
+        const map = {};
+        data.forEach(p => { map[p.id] = p.display_name; });
+        return map;
+    }
+
+    async function loadMyListings() {
+        const { data, error } = await supabaseClient
+            .from('listings')
+            .select('id, spot_number, rate, start_time, end_time')
+            .eq('owner_id', currentUser.id)
+            .eq('status', 'active');
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+        renderMyListings(data || []);
+    }
+
+    async function loadMyActiveBookings() {
+        const { data, error } = await supabaseClient
+            .from('bookings')
+            .select('id, plate, total, renter_id, listing_id, listings!inner(owner_id, spot_number, rate, start_time, end_time)')
+            .eq('status', 'confirmed')
+            .eq('listings.owner_id', currentUser.id);
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        const rows = data || [];
+        const nameById = await fetchDisplayNames(rows.map(r => r.renter_id));
+        rows.forEach(r => { r.renter_name = nameById[r.renter_id] || 'A neighbor'; });
+
+        renderMyActiveBookings(rows);
+    }
+
+    // "My Bookings" — a persistent receipt/history view. Unlike the
+    // live "waiting for confirmation" screen (which only updates while
+    // that modal is literally open), this shows the real status and,
+    // once confirmed, the actual spot number, any time the person
+    // checks back — including after closing the app and reopening it
+    // later, which the live modal alone never supported.
+    let myBookingsCache = [];
+    let showHiddenBookings = false;
+    let myBookingsSubtab = 'pending';
+
+    async function loadMyBookings() {
+        // Fetches everything, including hidden ones — the toggle below
+        // decides what's actually shown, so switching the view doesn't
+        // need a fresh query each time.
+        //
+        // IMPORTANT: this does NOT embed listings(...) directly, on
+        // purpose. That table's RLS is owner-only (closing the spot
+        // number leak found in review), so a renter querying their own
+        // booking history isn't the owner of the listing they booked —
+        // an embedded join would get silently blocked by RLS and come
+        // back null. public_listings is the safe view built for exactly
+        // this: it shows rate/window to anyone, while still never
+        // exposing spot_number or owner_id.
+        const { data, error } = await supabaseClient
+            .from('bookings')
+            .select('id, plate, total, status, created_at, confirmed_at, hidden_by_renter, listing_id')
+            .eq('renter_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        const rows = data || [];
+
+        const listingIds = [...new Set(rows.map(r => r.listing_id).filter(Boolean))];
+        let listingById = {};
+        if (listingIds.length > 0) {
+            const { data: listingRows, error: listingError } = await supabaseClient
+                .from('public_listings')
+                .select('id, rate, start_time, end_time')
+                .in('id', listingIds);
+
+            if (!listingError && listingRows) {
+                listingRows.forEach(l => { listingById[l.id] = l; });
+            }
+        }
+        rows.forEach(b => { b.listings = listingById[b.listing_id] || null; });
+
+        // Only fetch the actual spot number for confirmed bookings —
+        // this still goes through the same secured function as before,
+        // so the security model here hasn't changed at all.
+        for (const b of rows) {
+            if (b.status === 'confirmed') {
+                const { data: spot } = await supabaseClient
+                    .rpc('get_spot_number', { p_booking_id: b.id });
+                b.spot_number = spot;
+            }
+        }
+
+        myBookingsCache = rows;
+        renderMyBookings();
+    }
+
+    async function hideBooking(bookingId) {
+        const { error } = await supabaseClient.rpc('hide_booking', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not hide: ' + error.message);
+            return;
+        }
+        loadMyBookings();
+    }
+
+    async function unhideBooking(bookingId) {
+        const { error } = await supabaseClient.rpc('unhide_booking', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not restore: ' + error.message);
+            return;
+        }
+        showToast('Booking restored');
+        loadMyBookings();
+    }
+
+    // Available for CANCELLED bookings, and for CONFIRMED bookings once
+    // their time window has already ended (i.e. it's history, not an
+    // active paid booking). Permanent and irreversible, so this
+    // confirms first. A confirmed booking that's still active or
+    // upcoming never gets this option — only hide/restore.
+    async function deleteCancelledBooking(bookingId) {
+        const reallyDelete = confirm('Permanently delete this booking record? This can\'t be undone.');
+        if (!reallyDelete) return;
+
+        const { error } = await supabaseClient.rpc('delete_cancelled_booking', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not delete: ' + error.message);
+            return;
+        }
+        showToast('Booking deleted');
+        loadMyBookings();
+    }
+
+    function toggleShowHiddenBookings() {
+        showHiddenBookings = !showHiddenBookings;
+        renderMyBookings();
+    }
+
+    // Which sub-tab a given booking's status belongs to. refund_pending
+    // lives under "Cancelled" — it IS a cancelled booking, just one still
+    // waiting on the renter to confirm the refund arrived.
+    function subtabForStatus(status) {
+        if (status === 'awaiting_confirmation') return 'pending';
+        if (status === 'confirmed') return 'confirmed';
+        return 'cancelled'; // cancelled, refund_pending
+    }
+
+    function switchMyBookingsSubtab(subtab) {
+        myBookingsSubtab = subtab;
+        document.querySelectorAll('.subtab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(`subtab-btn-${subtab}`).classList.add('active');
+        renderMyBookings();
+    }
+
+    async function cancelBookingFromList(bookingId) {
+        const reallyCancel = confirm('Cancel this booking request? The spot will open back up for other neighbors.');
+        if (!reallyCancel) return;
+
+        const { error } = await supabaseClient.rpc('cancel_booking', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not cancel: ' + error.message);
+            return;
+        }
+        showToast('Booking cancelled');
+        loadListings();
+        loadMyBookings();
+    }
+
+    function renderMyBookings() {
+        const listEl = document.getElementById('my-bookings-list');
+        const emptyEl = document.getElementById('my-bookings-empty');
+
+        // Update the count badge on each sub-tab button first, based on
+        // ALL bookings in that bucket (hidden or not) — the toggle below
+        // only affects what's actually listed, not the count.
+        ['pending', 'confirmed', 'cancelled'].forEach(subtab => {
+            const count = myBookingsCache.filter(b => subtabForStatus(b.status) === subtab && !b.hidden_by_renter).length;
+            const badge = document.getElementById(`count-${subtab}`);
+            badge.innerText = count > 0 ? count : '';
+        });
+
+        const bucketRows = myBookingsCache.filter(b => subtabForStatus(b.status) === myBookingsSubtab);
+        const hiddenCount = bucketRows.filter(b => b.hidden_by_renter).length;
+        const rows = showHiddenBookings ? bucketRows : bucketRows.filter(b => !b.hidden_by_renter);
+
+        const emptyText = {
+            pending: 'No bookings waiting on owner confirmation right now.',
+            confirmed: 'No confirmed bookings yet.',
+            cancelled: 'No cancelled bookings.'
+        };
+
+        if (!rows || rows.length === 0) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+            emptyEl.innerText = emptyText[myBookingsSubtab];
+            return;
+        }
+        emptyEl.style.display = 'none';
+
+        const statusLabel = {
+            awaiting_confirmation: 'Waiting for owner to confirm payment',
+            confirmed: 'Confirmed',
+            refund_pending: 'Cancelled \u2014 refund pending your confirmation',
+            cancelled: 'Cancelled'
+        };
+
+        const toggleLine = hiddenCount > 0
+            ? `<button type="button" class="suggest-btn" style="margin-bottom:4px;" onclick="toggleShowHiddenBookings()">${showHiddenBookings ? 'Hide the hidden ones again' : `Show ${hiddenCount} hidden booking${hiddenCount === 1 ? '' : 's'}`}</button>`
+            : '';
+
+        listEl.innerHTML = toggleLine + rows.map(b => {
+            const listing = b.listings;
+            const start = listing ? new Date(listing.start_time) : null;
+            const end = listing ? new Date(listing.end_time) : null;
+            const windowText = listing
+                ? `${fmtDay(start)} ${fmtTime(start)} \u2192 ${fmtDay(end)} ${fmtTime(end)}`
+                : 'Listing details unavailable';
+
+            // Each status gets the one action that's actually relevant:
+            //   - awaiting_confirmation: cancel the request outright
+            //   - refund_pending: confirm the refund actually arrived
+            //   - cancelled: permanently delete (irreversible)
+            //   - confirmed, window already ended: permanently delete —
+            //     this is now just history, not an active paid booking
+            //   - confirmed, window still active/upcoming: no action at
+            //     all — this is your live reservation, not clutter to
+            //     hide or clean up. Restore stays available for any
+            //     booking that was hidden before this rule existed.
+            const isPastConfirmed = b.status === 'confirmed' && end && end.getTime() < Date.now();
+
+            let actionButton;
+            if (b.status === 'awaiting_confirmation') {
+                actionButton = `<button class="btn-confirm-receipt" style="background:transparent; color:var(--danger); border:1px solid var(--border); margin-top:8px;" onclick="cancelBookingFromList('${b.id}')">Cancel This Request</button>`;
+            } else if (b.status === 'refund_pending') {
+                actionButton = `<button class="btn-confirm-receipt" onclick="renterConfirmRefund('${b.id}')">Confirm Refund Received</button>`;
+            } else if (b.status === 'cancelled' || isPastConfirmed) {
+                actionButton = `<button class="btn-confirm-receipt" style="background:transparent; color:var(--danger); border:1px solid var(--border); margin-top:8px;" onclick="deleteCancelledBooking('${b.id}')">Delete Permanently</button>`;
+            } else if (b.hidden_by_renter) {
+                actionButton = `<button class="btn-confirm-receipt" style="background:transparent; color:var(--primary-dark); border:1px solid var(--border); margin-top:8px;" onclick="unhideBooking('${b.id}')">Restore to my list</button>`;
+            } else {
+                actionButton = '';
+            }
+
+            // A plain-language note explaining exactly what's going on —
+            // on top of the receipt, not instead of it. The status
+            // badge above already states the current state, so this
+            // note adds the ONE new piece of info: what to do next.
+            let contextNote;
+            if (b.status === 'awaiting_confirmation') {
+                contextNote = 'You can cancel below if you no longer need this spot.';
+            } else if (b.status === 'refund_pending') {
+                contextNote = 'This was a confirmed booking that the owner had to cancel. They say your Interac refund has been sent — confirm below only once you\'ve actually checked your account and it\'s arrived.';
+            } else if (b.status === 'cancelled' && b.confirmed_at) {
+                contextNote = 'This booking was confirmed and paid for, then later cancelled by the owner. Your refund was confirmed received.';
+            } else if (b.status === 'cancelled') {
+                contextNote = 'This booking request was cancelled before the owner confirmed payment — no money changed hands.';
+            } else {
+                contextNote = 'Confirmed and paid. This is your permanent record of this booking.';
+            }
+
+            // Every status gets the same full labeled record — Window,
+            // Rate, Guest Plate, Total — so every tab is equally clear.
+            // Spot only appears once it's actually been revealed
+            // (confirmed bookings only); every other status keeps it
+            // hidden, exactly as designed.
+            const receiptFields = [];
+            if (b.status === 'confirmed' && b.spot_number) {
+                receiptFields.push(['Spot', b.spot_number]);
+            }
+            receiptFields.push(
+                ['Window', windowText],
+                ['Rate', listing ? `$${Number(listing.rate).toFixed(2)}/hr` : '\u2014'],
+                ['Guest Plate', b.plate || 'not provided'],
+                ['Total', `$${Number(b.total).toFixed(2)}`]
+            );
+
+            const bodyHtml = `
+                <div class="summary-card" style="margin: 6px 0 10px 0; background:#fff;">
+                    ${buildReceiptRows(receiptFields)}
+                </div>
+                <div class="pending-card-meta" style="margin-bottom:8px;">${contextNote}</div>
+            `;
+
+            return `
+                <div class="pending-card" style="${b.hidden_by_renter ? 'opacity:0.6;' : ''}">
+                    <div class="pending-card-header">
+                        <span>$${Number(b.total).toFixed(2)}</span>
+                        <span style="color: var(--text-muted); font-size:0.75rem;">${statusLabel[b.status] || b.status}</span>
+                    </div>
+                    ${bodyHtml}
+                    ${actionButton}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderRentInventory() {
+        const container = document.getElementById('rent-inventory');
+        if (listingsCache.length === 0) {
+            container.innerHTML = '<div class="inventory-empty">No spots available right now. Check back soon.</div>';
+            return;
+        }
+        container.innerHTML = listingsCache.map(l => {
+            const hours = (l.end - l.start) / (1000 * 60 * 60);
+            const total = hours * Number(l.rate);
+            return `
+            <div class="inv-card ${selectedRentListingId === l.id ? 'selected' : ''}" onclick="selectRentListing('${l.id}')">
+                <div class="inv-card-header">
+                    <span>Available Spot</span>
+                    <span style="color: var(--primary);">$${Number(l.rate).toFixed(2)}/hr</span>
+                </div>
+                <div class="inv-timeline-bar"><div class="inv-timeline-fill" style="width: 100%;"></div></div>
+                <div class="inv-card-meta">
+                    <span>${fmtDay(l.start)} ${fmtTime(l.start)}</span>
+                    <span>Ends ${fmtDay(l.end)} ${fmtTime(l.end)}</span>
+                </div>
+                <div class="inv-card-meta" style="margin-top:4px;">
+                    <span>Total for full window:</span>
+                    <span style="font-weight:700; color:var(--text);">$${total.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+        }).join('');
+    }
+
+    function renderListInventory() {
+        const container = document.getElementById('list-inventory');
+        if (requestsCache.length === 0) {
+            container.innerHTML = '<div class="inventory-empty">No open requests from neighbors right now.</div>';
+            return;
+        }
+        container.innerHTML = requestsCache.map(r => `
+            <div class="inv-card ${selectedListRequestId === r.id ? 'selected' : ''}" onclick="selectListRequest('${r.id}')">
+                <div class="inv-card-header">
+                    <span>Neighbor Request</span>
+                    <span style="color: var(--accent-blue);">Wanted</span>
+                </div>
+                <div class="inv-timeline-bar"><div class="inv-timeline-fill demand" style="width: 60%; left: 20%;"></div></div>
+                <div class="inv-card-meta">
+                    <span>${fmtDay(r.start)} ${fmtTime(r.start)}</span>
+                    <span>Until ${fmtTime(r.end)}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderPendingConfirmations(rows) {
+        const wrapper = document.getElementById('pending-confirmations');
+        const title = document.getElementById('pending-confirmations-title');
+
+        if (!rows || rows.length === 0) {
+            wrapper.style.display = 'none';
+            title.style.display = 'none';
+            wrapper.innerHTML = '';
+            return;
+        }
+
+        wrapper.style.display = 'flex';
+        title.style.display = 'block';
+        wrapper.innerHTML = rows.map(b => {
+            const listing = b.listings;
+            const start = new Date(listing.start_time);
+            const end = new Date(listing.end_time);
+            const receipt = buildReceiptRows([
+                ['Spot', listing.spot_number],
+                ['Window', `${fmtDay(start)} ${fmtTime(start)} \u2192 ${fmtDay(end)} ${fmtTime(end)}`],
+                ['Rate', `$${Number(listing.rate).toFixed(2)}/hr`],
+                ['Renter', b.renter_name || 'A neighbor'],
+                ['Guest Plate', b.plate || 'not provided'],
+                ['Total', `$${Number(b.total).toFixed(2)}`]
+            ]);
+
+            return `
+                <div class="pending-card">
+                    <div class="pending-card-header">
+                        <span>${b.renter_name || 'A neighbor'}'s booking</span>
+                    </div>
+                    <div class="summary-card" style="margin: 6px 0 10px 0; background:#fff;">
+                        ${receipt}
+                    </div>
+                    <div class="pending-card-meta">
+                        Only confirm once you've actually checked your Interac / bank activity and the transfer has arrived.
+                    </div>
+                    <button class="btn-confirm-receipt" onclick="confirmPaymentReceipt('${b.id}')">Confirm Payment Received</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderMyListings(rows) {
+        const wrapper = document.getElementById('my-listings');
+        const title = document.getElementById('my-listings-title');
+
+        if (!rows || rows.length === 0) {
+            wrapper.style.display = 'none';
+            title.style.display = 'none';
+            wrapper.innerHTML = '';
+            return;
+        }
+
+        wrapper.style.display = 'flex';
+        title.style.display = 'block';
+        wrapper.innerHTML = rows.map(l => `
+            <div class="pending-card">
+                <div class="pending-card-header">
+                    <span>Spot ${l.spot_number}</span>
+                    <span style="color: var(--primary-dark);">$${Number(l.rate).toFixed(2)}/hr</span>
+                </div>
+                <div class="pending-card-meta">
+                    ${fmtDay(new Date(l.start_time))} ${fmtTime(new Date(l.start_time))} &rarr; ${fmtDay(new Date(l.end_time))} ${fmtTime(new Date(l.end_time))}<br>
+                    Not booked yet — you can cancel this anytime.
+                </div>
+                <button class="btn-confirm-receipt" style="background:var(--danger);" onclick="cancelMyListing('${l.id}')">Cancel Listing</button>
+            </div>
+        `).join('');
+    }
+
+    function renderMyActiveBookings(rows) {
+        const wrapper = document.getElementById('my-active-bookings');
+        const title = document.getElementById('my-active-bookings-title');
+
+        if (!rows || rows.length === 0) {
+            wrapper.style.display = 'none';
+            title.style.display = 'none';
+            wrapper.innerHTML = '';
+            return;
+        }
+
+        wrapper.style.display = 'flex';
+        title.style.display = 'block';
+        wrapper.innerHTML = rows.map(b => {
+            const listing = b.listings;
+            const start = new Date(listing.start_time);
+            const end = new Date(listing.end_time);
+            const receipt = buildReceiptRows([
+                ['Spot', listing.spot_number],
+                ['Window', `${fmtDay(start)} ${fmtTime(start)} \u2192 ${fmtDay(end)} ${fmtTime(end)}`],
+                ['Rate', `$${Number(listing.rate).toFixed(2)}/hr`],
+                ['Renter', b.renter_name || 'A neighbor'],
+                ['Guest Plate', b.plate || 'not provided'],
+                ['Total', `$${Number(b.total).toFixed(2)}`]
+            ]);
+
+            return `
+                <div class="pending-card">
+                    <div class="pending-card-header">
+                        <span>Confirmed booking</span>
+                    </div>
+                    <div class="summary-card" style="margin: 6px 0 10px 0; background:#fff;">
+                        ${receipt}
+                    </div>
+                    <div class="pending-card-meta">
+                        Only cancel here after you've actually sent the renter a refund via Interac — this does not send money for you.
+                    </div>
+                    <button class="btn-confirm-receipt" style="background:var(--danger);" onclick="ownerCancelConfirmedBooking('${b.id}')">I've Sent the Refund &mdash; Cancel Booking</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderRateHint() {
+        const hint = document.getElementById('rate-hint');
+        const suggestion = suggestedRate();
+        hint.innerHTML = `
+            Typical range for a neighbor's spot: $${RATE_MIN.toFixed(2)}-$${RATE_MAX.toFixed(2)}/hr
+            (Ottawa street meters run $1.00-$3.50+/hr).<br>
+            <button type="button" class="suggest-btn" onclick="applySuggestedRate()">Use suggested rate: $${suggestion.toFixed(2)}/hr</button>
+        `;
+    }
+
+    function suggestedRate() {
+        const demand = requestsCache.length;
+        const supply = Math.max(listingsCache.length, 1);
+        const demandRatio = Math.min(1, demand / supply);
+        const suggested = RATE_MIN + (RATE_MAX - RATE_MIN) * demandRatio;
+        return Math.round(suggested * 20) / 20;
+    }
+
+    function applySuggestedRate() {
+        document.getElementById('list-rate').value = suggestedRate().toFixed(2);
+        calculateList();
+        validateListForm();
+    }
+
+    function selectRentListing(id) {
+        selectedRentListingId = id;
+        const listing = listingsCache.find(l => l.id === id);
+        if (!listing) return;
+        document.getElementById('rent-rate').innerText = `$${Number(listing.rate).toFixed(2)}/hr`;
+        renderRentInventory();
+        calculateRent();
+    }
+
+    function selectListRequest(id) {
+        selectedListRequestId = id;
+        const req = requestsCache.find(r => r.id === id);
+        if (!req) return;
+        setDateTimeFields('list-start-date', 'list-start-time', req.start);
+        setDateTimeFields('list-home-date', 'list-home-time', req.end);
+        renderListInventory();
+        calculateList();
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.toggle-btn').forEach(el => el.classList.remove('active'));
+        const glider = document.getElementById('glider');
+
+        if (tab === 'rent') {
+            document.getElementById('tab-rent').classList.add('active');
+            document.querySelectorAll('.toggle-btn')[0].classList.add('active');
+            glider.style.transform = 'translateX(0)';
+            loadMyBookings();
+        } else {
+            document.getElementById('tab-list').classList.add('active');
+            document.querySelectorAll('.toggle-btn')[1].classList.add('active');
+            glider.style.transform = 'translateX(100%)';
+            loadPendingConfirmations();
+            loadMyListings();
+            loadMyActiveBookings();
+        }
+    }
+
+    function currentRate() {
+        if (!selectedRentListingId) return null;
+        const listing = listingsCache.find(l => l.id === selectedRentListingId);
+        return listing ? Number(listing.rate) : null;
+    }
+
+    function calculateRent() {
+        const windowEl = document.getElementById('rent-window');
+        const durationEl = document.getElementById('rent-duration');
+        const totalEl = document.getElementById('rent-total');
+
+        if (!selectedRentListingId) {
+            windowEl.innerText = 'Select a spot above';
+            durationEl.innerText = '\u2014';
+            totalEl.innerText = '$0.00';
+            validateRentForm();
+            return;
+        }
+
+        const listing = listingsCache.find(l => l.id === selectedRentListingId);
+        if (!listing) return;
+
+        // The booking always covers the listing's FULL window — there's
+        // no partial-window booking, so this is fixed info, not
+        // something the renter chooses.
+        windowEl.innerText = `${fmtDay(listing.start)} ${fmtTime(listing.start)} \u2192 ${fmtDay(listing.end)} ${fmtTime(listing.end)}`;
+
+        const rate = currentRate();
+        const hours = (listing.end - listing.start) / (1000 * 60 * 60);
+        durationEl.innerText = hours.toFixed(1) + ' Hours';
+        totalEl.innerText = '$' + (rate ? hours * rate : 0).toFixed(2);
+        validateRentForm();
+    }
+
+    function calculateList() {
+        const start = getDateTimeFields('list-start-date', 'list-start-time');
+        const home = getDateTimeFields('list-home-date', 'list-home-time');
+        const rate = parseFloat(document.getElementById('list-rate').value) || 0;
+
+        document.getElementById('err-list-start').innerText = '';
+        document.getElementById('err-list-home').innerText = '';
+
+        if (!start || !home) {
+            document.getElementById('list-buffer-display').innerText = '\u2014';
+            document.getElementById('list-total').innerText = '$0.00';
+            validateListForm();
+            return;
+        }
+
+        if (isNaN(start) || isNaN(home) || home <= start) {
+            document.getElementById('err-list-home').innerText = 'Return time must be after start time';
+            document.getElementById('list-buffer-display').innerText = '\u2014';
+            document.getElementById('list-total').innerText = '$0.00';
+            validateListForm();
+            return;
+        }
+
+        const bufferDate = new Date(home.getTime() - (60 * 60 * 1000));
+        const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        document.getElementById('list-buffer-display').innerText = bufferDate.toLocaleDateString('en-US', options);
+
+        const hours = Math.max(0, (bufferDate - start) / (1000 * 60 * 60));
+        document.getElementById('list-total').innerText = '$' + (hours * rate).toFixed(2);
+        validateListForm();
+    }
+
+    function validateRentForm() {
+        const plateEl = document.getElementById('rent-plate');
+        const plate = plateEl.value.trim();
+        const errEl = document.getElementById('err-rent-plate');
+        let plateOk = true;
+
+        if (plate.length > 0 && plate.length < 3) {
+            errEl.innerText = 'Plate looks too short';
+            plateEl.classList.add('invalid');
+            plateOk = false;
+        } else {
+            errEl.innerText = '';
+            plateEl.classList.remove('invalid');
+            plateOk = plate.length >= 3;
+        }
+
+        document.getElementById('btn-rent-submit').disabled = !(plateOk && selectedRentListingId);
+    }
+
+    function validateListForm() {
+        const spotEl = document.getElementById('list-spot');
+        const emailEl = document.getElementById('list-email');
+        const rateEl = document.getElementById('list-rate');
+
+        const spot = spotEl.value.trim();
+        const email = emailEl.value.trim();
+        const rate = parseFloat(rateEl.value);
+
+        const spotOk = spot.length > 0;
+
+        const emailOk = email.includes('@') && email.includes('.');
+        const errEmail = document.getElementById('err-list-email');
+        if (email.length > 0 && !emailOk) {
+            errEmail.innerText = 'Enter a valid email address';
+            emailEl.classList.add('invalid');
+        } else {
+            errEmail.innerText = '';
+            emailEl.classList.remove('invalid');
+        }
+
+        const rateOk = !isNaN(rate) && rate >= RATE_MIN && rate <= RATE_MAX;
+        const errRate = document.getElementById('err-list-rate');
+        if (rateEl.value.length > 0 && !rateOk) {
+            errRate.innerText = `Rate must be between $${RATE_MIN.toFixed(2)} and $${RATE_MAX.toFixed(2)}/hr`;
+            rateEl.classList.add('invalid');
+        } else {
+            errRate.innerText = '';
+            rateEl.classList.remove('invalid');
+        }
+
+        const startVal = document.getElementById('list-start-date').value && document.getElementById('list-start-time').value;
+        const homeVal = document.getElementById('list-home-date').value && document.getElementById('list-home-time').value;
+        const datesOk = startVal && homeVal && !document.getElementById('err-list-home').innerText;
+
+        document.getElementById('btn-list-submit').disabled = !(spotOk && emailOk && rateOk && datesOk);
+    }
+
+    function buildReviewSummary(type) {
+        if (type === 'rent') {
+            const plate = document.getElementById('rent-plate').value.trim();
+            const rate = document.getElementById('rent-rate').innerText;
+            const duration = document.getElementById('rent-duration').innerText;
+            const total = document.getElementById('rent-total').innerText;
+            const windowText = document.getElementById('rent-window').innerText;
+
+            return `
+                <div class="summary-card" style="margin-bottom:14px;">
+                    <div class="summary-row"><span>Window:</span><span>${windowText}</span></div>
+                    <div class="summary-row"><span>Duration:</span><span>${duration}</span></div>
+                    <div class="summary-row"><span>Rate:</span><span>${rate}</span></div>
+                    <div class="summary-row"><span>Guest Plate:</span><span>${plate || '\u2014'}</span></div>
+                    <div class="summary-row total"><span>Total Cost:</span><span>${total}</span></div>
+                </div>
+            `;
+        } else {
+            const spot = document.getElementById('list-spot').value.trim();
+            const email = document.getElementById('list-email').value.trim();
+            const rate = document.getElementById('list-rate').value;
+            const total = document.getElementById('list-total').innerText;
+            const closes = document.getElementById('list-buffer-display').innerText;
+            const start = getDateTimeFields('list-start-date', 'list-start-time');
+
+            return `
+                <div class="summary-card" style="margin-bottom:14px;">
+                    <div class="summary-row"><span>Spot Number:</span><span>${spot || '\u2014'}</span></div>
+                    <div class="summary-row"><span>Available From:</span><span>${start ? fmtDay(start) + ' ' + fmtTime(start) : '\u2014'}</span></div>
+                    <div class="summary-row"><span>Bookable Until:</span><span>${closes}</span></div>
+                    <div class="summary-row"><span>Rate:</span><span>$${Number(rate).toFixed(2)}/hr</span></div>
+                    <div class="summary-row"><span>Interac Email:</span><span>${email || '\u2014'}</span></div>
+                    <div class="summary-row total"><span>Max Earning:</span><span>${total}</span></div>
+                </div>
+            `;
+        }
+    }
+
+    function openLegalModal(type) {
+        const container = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+        container.classList.add('active');
+
+        const reviewTitle = type === 'rent' ? 'Confirm Your Booking' : 'Confirm Your Listing';
+
+        content.innerHTML = `
+            <h2 style="font-size: 1.2rem; margin-bottom: 10px;">${reviewTitle}</h2>
+            ${buildReviewSummary(type)}
+            <div class="legal-scroll-box">
+                <strong>1. SHARED RESPONSIBILITY:</strong> Both the spot owner and the renter are responsible for confirming payment and access details directly with each other. This app only facilitates the introduction and scheduling &mdash; it does not process or guarantee payment.<br><br>
+                <strong>2. GARAGE ACCESS:</strong> The renter is a fellow resident with their own building access, and is responsible for coordinating directly with their own guest about when to come let them in. The spot owner is only responsible for making the parking spot itself available for the booked window &mdash; not for granting or managing anyone's access.<br><br>
+                <strong>3. DISPUTES:</strong> Any disputes over payment or access should be resolved directly between the two neighbors. This app does not currently offer payment protection or mediation.
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="legal-agree" onchange="document.getElementById('btn-modal-next').disabled = !this.checked">
+                <label for="legal-agree" style="font-weight:500; font-size:0.8rem; color: var(--text)">I understand and agree to these terms.</label>
+            </div>
+            <button class="btn-submit" id="btn-modal-next" disabled onclick="executeWorkflow('${type}')">Accept & Continue</button>
+        `;
+    }
+
+    async function executeWorkflow(type) {
+        const content = document.getElementById('modal-content');
+
+        if (type === 'rent') {
+            const totalText = document.getElementById('rent-total').innerText;
+            const plate = document.getElementById('rent-plate').value.trim();
+
+            // create_booking claims the listing and creates the booking as one
+            // atomic step in the database, so two people can't both book the
+            // same spot for the same window — see the function in the schema.
+            // NOTE: total is now calculated SERVER-SIDE from the listing's own
+            // rate and window, so we no longer send p_total from the browser.
+            const { data: bookingId, error } = await supabaseClient
+                .rpc('create_booking', {
+                    p_listing_id: selectedRentListingId,
+                    p_plate: plate
+                });
+
+            if (error) {
+                content.innerHTML = `<p style="font-size:0.85rem; color:var(--danger);">${error.message}</p><button class="btn-submit" onclick="closeModal(); loadListings();">Close</button>`;
+                return;
+            }
+
+            // Fetch the REAL owner payment email (never a hardcoded address).
+            // This is only revealed because this user now has a real booking
+            // tied to this listing — see get_payment_email in the schema.
+            const { data: paymentEmail, error: emailError } = await supabaseClient
+                .rpc('get_payment_email', { p_booking_id: bookingId });
+
+            const displayEmail = emailError ? 'Could not load owner\'s email — contact them directly.' : paymentEmail;
+
+            content.innerHTML = `
+                <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">Step 1: Complete Interac Payment</h2>
+                <p style="font-size: 0.85rem; margin-bottom: 12px;">Send an Interac E-transfer of <strong>${totalText}</strong> to the owner:</p>
+                <div style="background:#f1f5f9; padding:12px; border-radius:10px; font-weight:700; text-align:center; font-size:1rem; margin-bottom:14px; border:1px dashed var(--border)">
+                    ${displayEmail}
+                </div>
+                <button class="btn-submit" id="btn-payment-sent" onclick="markPaymentSent('${bookingId}')">I Have Sent Payment</button>
+                <button class="btn-submit" style="background:transparent; color:var(--danger); margin-top:8px;" onclick="cancelMyBooking('${bookingId}')">Cancel Booking</button>
+                <p style="font-size: 0.75rem; color: var(--text-muted); text-align:center; margin-top:12px; line-height:1.4;">You don't need to keep this open — check "My Bookings" &rarr; Pending any time to see if it's confirmed yet.</p>
+            `;
+        } else {
+            const spot = document.getElementById('list-spot').value.trim();
+            const interacEmail = document.getElementById('list-email').value.trim();
+            const rate = parseFloat(document.getElementById('list-rate').value);
+            const start = getDateTimeFields('list-start-date', 'list-start-time');
+            const home = getDateTimeFields('list-home-date', 'list-home-time');
+            const bufferDate = new Date(home.getTime() - (60 * 60 * 1000));
+
+            // Reports this spot number as theirs. If someone else already
+            // has an APPROVED claim on it, this fails outright right here
+            // — that's the actual anti-exploit protection. If it's brand
+            // new, this creates a pending claim; create_listing below
+            // then only succeeds once the operator approves it.
+            const { error: claimError } = await supabaseClient
+                .rpc('claim_spot', { p_spot_number: spot });
+
+            if (claimError) {
+                content.innerHTML = `<p style="font-size:0.85rem; color:var(--danger);">${claimError.message}</p><button class="btn-submit" onclick="closeModal()">Close</button>`;
+                return;
+            }
+
+            // create_listing checks both that this spot is actually
+            // approved for this user AND that it doesn't overlap with
+            // another listing they already have out for the same spot.
+            const { error } = await supabaseClient
+                .rpc('create_listing', {
+                    p_spot_number: spot,
+                    p_interac_email: interacEmail,
+                    p_rate: rate,
+                    p_start_time: start.toISOString(),
+                    p_end_time: bufferDate.toISOString()
+                });
+
+            if (error) {
+                // Full technical detail stays in the console for
+                // troubleshooting — residents never see raw database text.
+                console.error('Listing creation failed:', error);
+
+                const isPendingApproval = error.message && error.message.toLowerCase().includes('row-level security policy');
+                const isOverlap = error.message && error.message.toLowerCase().includes('overlaps with this time window');
+
+                if (isPendingApproval) {
+                    content.innerHTML = `
+                        <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">Pending Verification</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">Your spot number is being verified by the building operator. You'll be able to publish this listing as soon as that's confirmed — no need to do anything else in the meantime.</p>
+                        <button class="btn-submit" onclick="closeModal()">Got It</button>
+                    `;
+                } else if (isOverlap) {
+                    content.innerHTML = `
+                        <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">Overlapping Listing</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">You already have a listing out for this spot that overlaps with this time window. Check "Your Listings" and cancel or adjust the existing one first.</p>
+                        <button class="btn-submit" onclick="closeModal()">Got It</button>
+                    `;
+                } else {
+                    content.innerHTML = `
+                        <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">Could Not Publish</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">Something went wrong publishing this listing. Please try again in a moment, or reach out to the building operator if it keeps happening.</p>
+                        <button class="btn-submit" onclick="closeModal()">Close</button>
+                    `;
+                }
+                return;
+            }
+
+            content.innerHTML = `
+                <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">Listing Published Anonymously</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">Your space window is now visible, but your specific spot number remains fully hidden from view until payment is confirmed.</p>
+                <button class="btn-submit" onclick="closeModal()">Back to Dashboard</button>
+            `;
+            showToast('Listing published');
+            loadListings();
+        }
+    }
+
+    async function cancelMyBooking(bookingId) {
+        const { error } = await supabaseClient.rpc('cancel_booking', { p_booking_id: bookingId });
+
+        if (activeWaitPollId) {
+            clearInterval(activeWaitPollId);
+            activeWaitPollId = null;
+        }
+
+        if (error) {
+            showToast('Could not cancel: ' + error.message);
+            return;
+        }
+
+        showToast('Booking cancelled');
+        closeModal();
+        loadListings();
+        loadMyBookings();
+    }
+
+    // Replaces the old blocking "waiting for confirmation" screen, which
+    // polled every 2 seconds and trapped the renter in the modal with no
+    // real way out. Now: acknowledge, close, and point them at the
+    // Pending tab — which already shows live status (and reveals the
+    // spot number automatically) any time they check back, including
+    // after fully closing and reopening the app.
+    function markPaymentSent(bookingId) {
+        closeModal();
+        showToast("Marked as sent \u2014 we'll show it here once confirmed");
+        myBookingsSubtab = 'pending';
+        switchMyBookingsSubtab('pending');
+        loadMyBookings();
+    }
+
+    async function confirmPaymentReceipt(bookingId) {
+        // Goes through confirm_payment now instead of a plain table
+        // update, since it also emails the renter — so they can close
+        // the app instead of needing to keep watching for it live.
+        const { error } = await supabaseClient
+            .rpc('confirm_payment', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not confirm: ' + error.message);
+            return;
+        }
+        showToast('Marked as received');
+        loadPendingConfirmations();
+        loadMyActiveBookings();
+    }
+
+    async function cancelMyListing(listingId) {
+        const { error } = await supabaseClient.rpc('cancel_my_listing', { p_listing_id: listingId });
+
+        if (error) {
+            showToast('Could not cancel: ' + error.message);
+            return;
+        }
+        showToast('Listing cancelled');
+        loadMyListings();
+    }
+
+    async function ownerCancelConfirmedBooking(bookingId) {
+        const { error } = await supabaseClient.rpc('owner_cancel_confirmed_booking', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not cancel: ' + error.message);
+            return;
+        }
+        showToast('Booking cancelled — refund now needs renter confirmation');
+        loadMyActiveBookings();
+        loadListings();
+    }
+
+    async function renterConfirmRefund(bookingId) {
+        const { error } = await supabaseClient.rpc('renter_confirm_refund', { p_booking_id: bookingId });
+
+        if (error) {
+            showToast('Could not confirm: ' + error.message);
+            return;
+        }
+        showToast('Refund confirmed — booking closed');
+        loadMyBookings();
+    }
+
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.innerText = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function closeModal() {
+        document.getElementById('modal-container').classList.remove('active');
+        if (activeWaitPollId) {
+            clearInterval(activeWaitPollId);
+            activeWaitPollId = null;
+        }
+    }
+
+    async function bootstrap() {
+        showLoadingScreen();
+        const { data: { session } } = await supabaseClient.auth.getSession();
+
+        if (session && session.user) {
+            currentUser = session.user;
+            await showApp();
+        } else {
+            showAuthScreen();
+        }
+    }
+
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session && session.user) {
+            currentUser = session.user;
+            await showApp();
+        } else if (event === 'SIGNED_OUT') {
+            currentUser = null;
+            showAuthScreen();
+        }
+    });
+
+    bootstrap();
+</script>
+
+</body>
+</html>

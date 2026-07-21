@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Parking Share</title>
+    <style>
+        :root {
+            --primary: #10b981; 
+            --primary-dark: #059669;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #eff6ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 410px;
+            background: var(--card-bg);
+            border-radius: 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .toggle-container {
+            display: flex;
+            background: #f1f5f9;
+            margin: 16px;
+            padding: 4px;
+            border-radius: 14px;
+            position: relative;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .toggle-btn.active {
+            color: var(--text);
+        }
+
+        .toggle-glider {
+            position: absolute;
+            height: calc(100% - 8px);
+            width: calc(50% - 4px);
+            background: white;
+            top: 4px;
+            left: 4px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 1;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tab-content {
+            padding: 0 16px 20px 16px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin: 16px 0 10px 0;
+        }
+
+        /* Inventory Cards Grid - Anonymized */
+        .inventory-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+            margin-bottom: 16px;
+        }
+
+        .inv-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .inv-card:hover, .inv-card.selected {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+        }
+
+        .inv-card-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .inv-timeline-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            position: relative;
+            margin: 8px 0;
+        }
+
+        .inv-timeline-fill {
+            position: absolute;
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+        }
+        
+        .inv-timeline-fill.demand {
+            background: var(--accent-blue);
+        }
+
+        .inv-card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Forms */
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            background: #f8fafc;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .info-box {
+            background-color: var(--danger-light);
+            border-left: 4px solid var(--danger);
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #7f1d1d;
+        }
+
+        .summary-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .summary-row.total {
+            margin-bottom: 0;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border);
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background-color: var(--text);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn-submit:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            align-items: flex-end;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-sheet {
+            background: white;
+            width: 100%;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 85%;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal-sheet {
+            transform: translateY(0);
+        }
+
+        .legal-scroll-box {
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-row input {
+            width: auto;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <!-- HEADER -->
+    <div class="header">
+        <h1>Building Parking Share</h1>
+        <p>Residents Only • $0.50 / Hour</p>
+    </div>
+
+    <!-- TOGGLE TABS -->
+    <div class="toggle-container">
+        <button class="toggle-btn active" onclick="switchTab('rent')">Find a Spot</button>
+        <button class="toggle-btn" onclick="switchTab('list')">List My Spot</button>
+        <div class="toggle-glider" id="glider"></div>
+    </div>
+
+    <!-- TAB 1: FIND A SPOT -->
+    <div id="tab-rent" class="tab-content active">
+        <div class="section-title">Available Active Windows</div>
+        <div class="inventory-list">
+            <!-- Completely hidden spot numbers -->
+            <div class="inv-card selected" onclick="selectCard(this, 'rent', '142', '2026-07-21T08:00', '2026-07-22T08:00')">
+                <div class="inv-card-header">
+                    <span>🔒 Available Space #1</span>
+                    <span style="color: var(--primary);">$0.50/hr</span>
+                </div>
+                <div class="inv-timeline-bar"><div class="inv-timeline-fill" style="width: 100%;"></div></div>
+                <div class="inv-card-meta">
+                    <span>Available Now</span>
+                    <span>Ends Tomorrow 8:00 AM</span>
+                </div>
+            </div>
+            <div class="inv-card" onclick="selectCard(this, 'rent', '089', '2026-07-21T18:00', '2026-07-21T23:00')">
+                <div class="inv-card-header">
+                    <span>🔒 Available Space #2</span>
+                    <span style="color: var(--primary);">$0.50/hr</span>
+                </div>
+                <div class="inv-timeline-bar"><div class="inv-timeline-fill" style="width: 40%; left: 30%;"></div></div>
+                <div class="inv-card-meta">
+                    <span>Tonight 6:00 PM</span>
+                    <span>Until 11:00 PM</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+            <label>Your Guest's License Plate *</label>
+            <input type="text" id="rent-plate" placeholder="e.g. ABCD-123" oninput="validateRentForm()">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Start Date & Time</label>
+                <input type="datetime-local" id="rent-start" value="2026-07-21T21:00" onchange="calculateRent()">
+            </div>
+            <div class="form-group">
+                <label>End Date & Time</label>
+                <input type="datetime-local" id="rent-end" value="2026-07-22T08:00" onchange="calculateRent()">
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-row">
+                <span>Total Duration:</span>
+                <span id="rent-duration">11.0 Hours</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total Cost:</span>
+                <span id="rent-total">$5.50</span>
+            </div>
+        </div>
+
+        <button class="btn-submit" id="btn-rent-submit" disabled onclick="openLegalModal('rent')">Secure Booking</button>
+    </div>
+
+    <!-- TAB 2: LIST A SPOT -->
+    <div id="tab-list" class="tab-content">
+        <div class="section-title">Live Neighbor Requests</div>
+        <div class="inventory-list">
+            <div class="inv-card" onclick="selectCard(this, 'list', '', '2026-07-21T18:00', '2026-07-21T23:00')">
+                <div class="inv-card-header">
+                    <span>Neighbor Request</span>
+                    <span style="color: var(--accent-blue);">Wanted</span>
+                </div>
+                <div class="inv-timeline-bar"><div class="inv-timeline-fill demand" style="width: 50%; left: 20%;"></div></div>
+                <div class="inv-card-meta">
+                    <span>Tonight 6:00 PM</span>
+                    <span>Until 11:00 PM (5 hrs)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Your Parking Spot Number</label>
+                <input type="text" id="list-spot" placeholder="e.g. 142" oninput="validateListForm()">
+            </div>
+            <div class="form-group">
+                <label>Your Interac E-transfer Email</label>
+                <input type="email" id="list-email" placeholder="name@email.com" oninput="validateListForm()">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Available From</label>
+                <input type="datetime-local" id="list-start" value="2026-07-21T08:00" onchange="calculateList()">
+            </div>
+            <div class="form-group">
+                <label>When You Return Home</label>
+                <input type="datetime-local" id="list-home" value="2026-07-22T09:00" onchange="calculateList()">
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>🛡️ Safety Buffer Active</strong><br>
+            Your listing locks booking access automatically 1 hour prior to your return home.
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-row">
+                <span>Bookable Window Closes:</span>
+                <span id="list-buffer-display">July 22, 8:00 AM</span>
+            </div>
+            <div class="summary-row total">
+                <span>Max Earning Potential:</span>
+                <span id="list-total">$12.00</span>
+            </div>
+        </div>
+
+        <button class="btn-submit" id="btn-list-submit" disabled onclick="openLegalModal('list')">Publish Listing</button>
+    </div>
+
+    <!-- MODERN MODAL SHEET -->
+    <div class="modal-overlay" id="modal-container">
+        <div class="modal-sheet" id="modal-content"></div>
+    </div>
+</div>
+
+<script>
+    let selectedSpotNum = "142"; // Simulated background secure data
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.toggle-btn').forEach(el => el.classList.remove('active'));
+        const glider = document.getElementById('glider');
+        
+        if(tab === 'rent') {
+            document.getElementById('tab-rent').classList.add('active');
+            document.querySelectorAll('.toggle-btn')[0].classList.add('active');
+            glider.style.transform = 'translateX(0)';
+        } else {
+            document.getElementById('tab-list').classList.add('active');
+            document.querySelectorAll('.toggle-btn')[1].classList.add('active');
+            glider.style.transform = 'translateX(100%)';
+        }
+    }
+
+    function selectCard(card, type, spot, start, end) {
+        card.parentNode.querySelectorAll('.inv-card').forEach(el => el.classList.remove('selected'));
+        card.classList.add('selected');
+        if(type === 'rent') {
+            selectedSpotNum = spot; // Hidden value loaded into background state
+            document.getElementById('rent-start').value = start;
+            document.getElementById('rent-end').value = end;
+            calculateRent();
+        } else {
+            document.getElementById('list-start').value = start;
+            document.getElementById('list-home').value = end;
+            calculateList();
+        }
+    }
+
+    function calculateRent() {
+        const start = new Date(document.getElementById('rent-start').value);
+        const end = new Date(document.getElementById('rent-end').value);
+        if (isNaN(start) || isNaN(end) || end <= start) return;
+
+        const hours = (end - start) / (1000 * 60 * 60);
+        document.getElementById('rent-duration').innerText = hours.toFixed(1) + " Hours";
+        document.getElementById('rent-total').innerText = '$' + (hours * 0.50).toFixed(2);
+        validateRentForm();
+    }
+
+    function calculateList() {
+        const start = new Date(document.getElementById('list-start').value);
+        const home = new Date(document.getElementById('list-home').value);
+        if (isNaN(start) || isNaN(home) || home <= start) return;
+
+        const bufferDate = new Date(home.getTime() - (60 * 60 * 1000));
+        const options = { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        document.getElementById('list-buffer-display').innerText = bufferDate.toLocaleDateString('en-US', options);
+
+        const hours = (bufferDate - start) / (1000 * 60 * 60);
+        document.getElementById('list-total').innerText = '$' + (hours * 0.50).toFixed(2);
+        validateListForm();
+    }
+
+    function validateRentForm() {
+        const plate = document.getElementById('rent-plate').value.trim();
+        document.getElementById('btn-rent-submit').disabled = (plate.length < 3);
+    }
+
+    function validateListForm() {
+        const spot = document.getElementById('list-spot').value.trim();
+        const email = document.getElementById('list-email').value.trim();
+        document.getElementById('btn-list-submit').disabled = (spot.length === 0 || !email.includes('@'));
+    }
+
+    function openLegalModal(type) {
+        const container = document.getElementById('modal-container');
+        const content = document.getElementById('modal-content');
+        container.classList.add('active');
+
+        content.innerHTML = `
+            <h2 style="font-size: 1.2rem; margin-bottom: 10px;">Platform Liability Waiver</h2>
+            <div class="legal-scroll-box">
+                <strong>1. LIMITATION OF LIABILITY:</strong> App developers hold ZERO liability for any real-world disputes, asset blockages, or financial tracking anomalies.<br><br>
+                <strong>2. TOWING DISCLAIMER:</strong> Renters carry full liability for parking verification records. Spaces remain hidden until payment verification completes to isolate inventory from non-authorized exploitation.
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="legal-agree" onchange="document.getElementById('btn-modal-next').disabled = !this.checked">
+                <label for="legal-agree" style="font-weight:500; font-size:0.8rem; color: var(--text)">I explicitly agree to indemnify the app developers.</label>
+            </div>
+            <button class="btn-submit" id="btn-modal-next" disabled onclick="executeWorkflow('${type}')">Accept & Continue</button>
+        `;
+    }
+
+    function executeWorkflow(type) {
+        const content = document.getElementById('modal-content');
+        if(type === 'rent') {
+            const total = document.getElementById('rent-total').innerText;
+            content.innerHTML = `
+                <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">Step 1: Complete Interac Payment</h2>
+                <p style="font-size: 0.85rem; margin-bottom: 12px;">Send an Interac E-transfer of <strong>${total}</strong> to the owner:</p>
+                <div style="background:#f1f5f9; padding:12px; border-radius:10px; font-weight:700; text-align:center; font-size:1rem; margin-bottom:14px; border:1px dashed var(--border)">
+                    secure-payment@buildingpool.com
+                </div>
+                <button class="btn-submit" onclick="showSimulatedOwnerConfirmation()">I Have Sent Payment</button>
+            `;
+        } else {
+            content.innerHTML = `
+                <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">✓ Listing Published Anonymously</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">Your space window is now visible, but your specific spot number remains fully hidden from view until payment is validated.</p>
+                <button class="btn-submit" onclick="closeModal()">Back to Dashboard</button>
+            `;
+        }
+    }
+
+    // Simulated Flow Showing the Secure Reveal Step
+    function showSimulatedOwnerConfirmation() {
+        const content = document.getElementById('modal-content');
+        content.innerHTML = `
+            <h2 style="font-size: 1.2rem; margin-bottom: 8px; color: var(--primary-dark)">💰 Payment Confirmed by Owner!</h2>
+            <div style="background: var(--accent-blue-light); border-left:4px solid var(--accent-blue); padding:14px; font-size:0.9rem; border-radius:10px; color:#1e3a8a; margin-bottom:16px; line-height:1.4;">
+                <strong>YOUR ASSIGNED PARKING SPOT:</strong><br>
+                <span style="font-size:1.6rem; font-weight:800; display:block; margin:6px 0; color:var(--text)">SPOT ${selectedSpotNum}</span>
+                Your license plate has been securely whitelisted in the security database for this window.
+            </div>
+            <button class="btn-submit" onclick="closeModal()">Finish</button>
+        `;
+    }
+
+    function closeModal() {
+        document.getElementById('modal-container').classList.remove('active');
+    }
+
+    calculateRent();
+    calculateList();
+</script>
+
+</body>
+</html>
+
+    
